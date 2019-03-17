@@ -16,9 +16,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
+#include <list>
 
 #include "rdt_struct.h"
 #include "rdt_sender.h"
+#include "rdt_pktitem.h"
+
+/* Declaration added by me. */
+
+/* Send packages and store them into buff. */
+void Sender_SplitPackages(struct message *msg);
+
+void Sender_SlideWindow();
 
 /* sender initialization, called once at the very beginning */
 void Sender_Init()
@@ -48,7 +58,7 @@ void Sender_FromUpperLayer(struct message *msg)
     /* split the message if it is too big */
 
     /* reuse the same packet data structure */
-    packet pkt;
+    packet pkt = {0};
 
     /* the cursor always points to the first unsent byte in the message */
     int cursor = 0;
@@ -82,9 +92,20 @@ void Sender_FromUpperLayer(struct message *msg)
    sender */
 void Sender_FromLowerLayer(struct packet *pkt)
 {
+    PktItem *p = (PktItem *)pkt;
 }
 
 /* event handler, called when the timer expires */
 void Sender_Timeout()
 {
+}
+
+void Sender_SplitPackages(struct message *msg)
+{
+
+}
+
+void Sender_SlideWindow()
+{
+
 }
