@@ -30,13 +30,14 @@ static uint32_t pkt_nextseqnumber;
 
 /* Send packages and store them into buff. */
 void Sender_StoreMessages(struct message *msg);
-
+void Sender_SendPacket(PktItem *p);
 void Sender_SendPackets();
 
 /* sender initialization, called once at the very beginning */
 void Sender_Init()
 {
     fprintf(stdout, "At %.2fs: sender initializing ...\n", GetSimulationTime());
+    pkt_buff.clear();
     pkt_base = 0;
     pkt_nextseqnumber = 0;
 }
@@ -62,16 +63,28 @@ void Sender_FromUpperLayer(struct message *msg)
    sender */
 void Sender_FromLowerLayer(struct packet *pkt)
 {
-    printf("i Sender_FromLowerLayer\n");
+    static int ack_cnt = 0;
+    printf("At %.2fs: i Sender_FromLowerLayer\n", GetSimulationTime());
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
+        printf("p->seq %u pkt_base %u\n", p->seq, pkt_base);
         if (p->seq > pkt_base)
         {
             pkt_base = p->seq;
             Sender_SendPackets();
             if (pkt_base == pkt_nextseqnumber)
                 Sender_StopTimer();
+            ack_cnt = 0;
+        }
+        else if (p->seq == pkt_base)
+        {
+            ack_cnt++;
+            if (ack_cnt > 2)
+            {
+                Sender_SendPacket(&pkt_buff[p->seq]);
+                ack_cnt = 0;
+            }
         }
     }
     printf("o Sender_FromLowerLayer\n");
@@ -80,12 +93,11 @@ void Sender_FromLowerLayer(struct packet *pkt)
 /* event handler, called when the timer expires */
 void Sender_Timeout()
 {
-    printf("i Sender_Timeout\n");
+    printf("At %.2fs: i Sender_Timeout\n", GetSimulationTime());
+        printf("%u %u\n", pkt_base, pkt_nextseqnumber);
     for (uint32_t i = pkt_base; i < pkt_nextseqnumber; i++)
     {
-        // printf("%u %u\n", pkt_base, pkt_nextseqnumber);
-        Sender_ToLowerLayer((struct packet *)&pkt_buff[i]);
-        Sender_StartTimer(TIMEOUT);
+        Sender_SendPacket(&pkt_buff[i]);
     }
     printf("o Sender_Timeout\n");
 }
@@ -93,7 +105,7 @@ void Sender_Timeout()
 void Sender_StoreMessages(struct message *msg)
 {
     assert(msg);
-    printf("i Sender_StoreMessage\n");
+    printf("At %.2fs: i Sender_StoreMessage\n", GetSimulationTime());
     int msg_size = msg->size;
     char *data = msg->data;
     printf("msg size %d\n", msg->size);
@@ -112,17 +124,21 @@ void Sender_StoreMessages(struct message *msg)
     printf("o Sender_StoreMessage\n");
 }
 
+void Sender_SendPacket(PktItem *p)
+{
+    // printf("nextseqnumber %d\n", pkt_nextseqnumber);
+    Sender_ToLowerLayer((struct packet *)p);
+    // printf("send %u %.*s\n", pkt_buff[pkt_nextseqnumber].payload_size, pkt_buff[pkt_nextseqnumber].payload_size, pkt_buff[pkt_nextseqnumber].payload);
+    Sender_StartTimer(TIMEOUT);
+}
+
 void Sender_SendPackets()
 {
-    printf("i Sender_SendPackets\n");
+    printf("At %.2fs: i Sender_SendPackets\n", GetSimulationTime());
     // printf("pkt size %d\n", sizeof(PktItem));
     for (; pkt_nextseqnumber < std::min((std::size_t)(pkt_base + WINDOW_SIZE), pkt_buff.size()); pkt_nextseqnumber++)
     {
-        // printf("nextseqnumber %d\n", pkt_nextseqnumber);
-        Sender_ToLowerLayer((struct packet *)(&pkt_buff[pkt_nextseqnumber]));
-        // printf("send %u %.*s\n", pkt_buff[pkt_nextseqnumber].payload_size, pkt_buff[pkt_nextseqnumber].payload_size, pkt_buff[pkt_nextseqnumber].payload);
-        Sender_StartTimer(TIMEOUT);
+        Sender_SendPacket(&pkt_buff[pkt_nextseqnumber]);
     }
-    
     printf("o Sender_SendPackets\n");
 }

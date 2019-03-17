@@ -17,12 +17,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <vector>
 
 #include "rdt_struct.h"
 #include "rdt_receiver.h"
 #include "rdt_protocol.h"
 
 /* Declaration added by me */
+std::vector<PktItem> pkt_buff;
 uint32_t seq;
 
 /* receiver initialization, called once at the very beginning */
@@ -30,6 +32,7 @@ void Receiver_Init()
 {
     fprintf(stdout, "At %.2fs: receiver initializing ...\n", GetSimulationTime());
     seq = 0;
+    pkt_buff.clear();
 }
 
 /* receiver finalization, called once at the very end.
@@ -45,25 +48,36 @@ void Receiver_Final()
    receiver */
 void Receiver_FromLowerLayer(struct packet *pkt)
 {
-    printf("i Receiver_FromLowerLayer\n");
+    printf("At %.2fs: i Receiver_FromLowerLayer\n", GetSimulationTime());
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
         printf("seq %u p->seq %u\n", seq, p->seq);
+        PktItem temp;
+        temp.seq = 0xFFFFFFFF;
+        while (pkt_buff.size() <= p->seq)
+        {
+            pkt_buff.push_back(temp);
+        }
+        printf("pkt buff size %u p->seq %u\n", pkt_buff.size(), p->seq);
+        pkt_buff[p->seq] = *p;
         if (seq == p->seq)
         {
             // printf("recc %u %.*s\n", p->payload_size, p->payload_size, p->payload);
-            seq++;
-            struct message msg;
-            msg.data = (char *)(p->payload);
-            msg.size = p->payload_size;
-            Receiver_ToUpperLayer(&msg);
+            while (seq < pkt_buff.size() && pkt_buff[seq].seq != 0xFFFFFFFF)
+            {
+                /* code */
+                struct message msg;
+                msg.data = (char *)(pkt_buff[seq].payload);
+                msg.size = pkt_buff[seq].payload_size;
+                Receiver_ToUpperLayer(&msg);
+                seq++;
+            }
         }
         PktItem answer;
         answer.seq = seq;
         setChecksum(&answer);
         Receiver_ToLowerLayer((struct packet *)&answer);
-        
     }
     printf("o Receiver_FromLowerLayer\n");
 }

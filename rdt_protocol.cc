@@ -25,7 +25,9 @@ void setChecksum(PktItem *ptr)
 int varifyChecksum(PktItem *ptr)
 {
     assert(ptr);
-    return !calcChecksum((char *)ptr, RDT_PKTSIZE);
+    uint16_t temp = ptr->checksum;
+    setChecksum(ptr);
+    return temp == ptr->checksum;
 }
 
 // #include <cstdio>

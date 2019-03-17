@@ -7,7 +7,7 @@
 #include "rdt_struct.h"
 
 #define WINDOW_SIZE 10
-#define TIMEOUT 0.5
+#define TIMEOUT 1
 #define HEADER_SIZE 8
 #define MAX_PAYLOAD_SIZE (RDT_PKTSIZE - HEADER_SIZE)
 
