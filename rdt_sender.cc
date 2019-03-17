@@ -21,12 +21,14 @@
 
 #include "rdt_struct.h"
 #include "rdt_sender.h"
-#include "rdt_pktitem.h"
+#include "rdt_protocol.h"
 
 /* Declaration added by me. */
+PktItem *pkt_buff;
+int pkt_buff_len;
 
 /* Send packages and store them into buff. */
-void Sender_SplitPackages(struct message *msg);
+void Sender_StoreMessages(struct message *msg);
 
 void Sender_SlideWindow();
 
@@ -34,6 +36,7 @@ void Sender_SlideWindow();
 void Sender_Init()
 {
     fprintf(stdout, "At %.2fs: sender initializing ...\n", GetSimulationTime());
+    pkt_buff_len = 0;
 }
 
 /* sender finalization, called once at the very end.
@@ -49,43 +52,7 @@ void Sender_Final()
    sender */
 void Sender_FromUpperLayer(struct message *msg)
 {
-    /* 1-byte header indicating the size of the payload */
-    int header_size = 1;
-
-    /* maximum payload size */
-    int maxpayload_size = RDT_PKTSIZE - header_size;
-
-    /* split the message if it is too big */
-
-    /* reuse the same packet data structure */
-    packet pkt = {0};
-
-    /* the cursor always points to the first unsent byte in the message */
-    int cursor = 0;
-
-    while (msg->size - cursor > maxpayload_size)
-    {
-        /* fill in the packet */
-        pkt.data[0] = maxpayload_size;
-        memcpy(pkt.data + header_size, msg->data + cursor, maxpayload_size);
-
-        /* send it out through the lower layer */
-        Sender_ToLowerLayer(&pkt);
-
-        /* move the cursor */
-        cursor += maxpayload_size;
-    }
-
-    /* send out the last packet */
-    if (msg->size > cursor)
-    {
-        /* fill in the packet */
-        pkt.data[0] = msg->size - cursor;
-        memcpy(pkt.data + header_size, msg->data + cursor, pkt.data[0]);
-
-        /* send it out through the lower layer */
-        Sender_ToLowerLayer(&pkt);
-    }
+    Sender_StoreMessages(msg);
 }
 
 /* event handler, called when a packet is passed from the lower layer at the 
@@ -100,12 +67,28 @@ void Sender_Timeout()
 {
 }
 
-void Sender_SplitPackages(struct message *msg)
+void Sender_StoreMessages(struct message *msg)
 {
-
+    int msg_size = msg->size;
+    while (msg_size >= MAX_PAYLOAD_SIZE)
+    {
+        PktItem *p = (PktItem *)malloc(sizeof(PktItem));
+        p->seq = ++pkt_buff_len;
+        p->payload_size = MAX_PAYLOAD_SIZE;
+        memcpy(p->payload, msg->data, MAX_PAYLOAD_SIZE);
+        setChecksum(p);
+        msg_size -= MAX_PAYLOAD_SIZE;
+    }
+    if (!msg_size) // Store remaining data if necessary.
+    {
+        PktItem *p = (PktItem *)malloc(sizeof(PktItem));
+        p->seq = ++pkt_buff_len;
+        p->payload_size = msg_size;
+        memcpy(p->payload, msg->data, msg_size);
+        setChecksum(p);
+    }
 }
 
 void Sender_SlideWindow()
 {
-
 }

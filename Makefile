@@ -12,9 +12,9 @@ all: $(TARGETS)
 .cc.o:
 	g++ $(CCFLAGS) -c -o $@ $<
 
-rdt_pktitem.o:	rdt_pktitem.h rdt_struct.h
+rdt_protocol.o:	rdt_protocol.h rdt_struct.h
 
-rdt_sender.o: 	rdt_struct.h rdt_sender.h
+rdt_sender.o: 	rdt_protocol.h rdt_struct.h rdt_sender.h
 
 rdt_receiver.o:	rdt_struct.h rdt_receiver.h 
 

@@ -1,4 +1,4 @@
-#include "rdt_pktitem.h"
+#include "rdt_protocol.h"
 #include "rdt_struct.h"
 
 #define CHECKSUM_BLOCK_NUM (RDT_PKTSIZE / 2)

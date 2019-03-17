@@ -1,5 +1,5 @@
-#ifndef _RDT_PKTITEM_H
-#define _RDT_PKTITEM_H
+#ifndef _RDT_PROTOCOL_H
+#define _RDT_PROTOCOL_H
 
 #include <stdint.h>
 #include <string.h>
