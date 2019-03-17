@@ -61,6 +61,7 @@ void Sender_FromUpperLayer(struct message *msg)
    sender */
 void Sender_FromLowerLayer(struct packet *pkt)
 {
+    printf("i Sender_FromLowerLayer\n");
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
@@ -70,20 +71,25 @@ void Sender_FromLowerLayer(struct packet *pkt)
             Sender_SendPackets();
         }
     }
+    printf("o Sender_FromLowerLayer\n");
 }
 
 /* event handler, called when the timer expires */
 void Sender_Timeout()
 {
+    printf("i Sender_Timeout\n");
     for (int i = 0; i < WINDOW_SIZE; i++)
     {
         Sender_ToLowerLayer((struct packet *)&pkt_buff[i + pkt_base]);
         Sender_StartTimer(TIMEOUT);
     }
+    printf("o Sender_Timeout\n");
 }
 
 void Sender_StoreMessages(struct message *msg)
 {
+    assert(msg);
+    printf("i Sender_StoreMessage\n");
     int msg_size = msg->size;
     while (msg_size >= MAX_PAYLOAD_SIZE)
     {
@@ -106,13 +112,16 @@ void Sender_StoreMessages(struct message *msg)
         pkt_buff.push_back(*p);
         free(p);
     }
+    printf("o Sender_StoreMessage\n");
 }
 
 void Sender_SendPackets()
 {
+    printf("i Sender_SendPackets\n");
     for (; pkt_nextseqnumber < pkt_base + WINDOW_SIZE; pkt_nextseqnumber++)
     {
         Sender_ToLowerLayer((struct packet *)&pkt_buff[pkt_nextseqnumber]);
         Sender_StartTimer(TIMEOUT);
     }
+    printf("o Sender_SendPackets\n");
 }

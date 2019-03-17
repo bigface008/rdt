@@ -1,2 +1,4 @@
 rdt_sim
 *.o
+temp
+.vscode

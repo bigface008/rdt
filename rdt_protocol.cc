@@ -17,12 +17,14 @@ uint16_t calcChecksum(char *data, int len)
 
 void setChecksum(PktItem *ptr)
 {
+    assert(ptr);
     ptr->checksum = 0;
     ptr->checksum = calcChecksum((char *)ptr, RDT_PKTSIZE);
 }
 
 int varifyChecksum(PktItem *ptr)
 {
+    assert(ptr);
     return !calcChecksum((char *)ptr, RDT_PKTSIZE);
 }
 
