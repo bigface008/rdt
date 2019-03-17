@@ -2,3 +2,5 @@ rdt_sim
 *.o
 temp
 .vscode
+*.zip
+*.tar.gz
