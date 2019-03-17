@@ -43,7 +43,7 @@ void Receiver_Final()
    receiver */
 void Receiver_FromLowerLayer(struct packet *pkt)
 {
-    printf("i Receiver_FromLowerLayer");
+    // printf("i Receiver_FromLowerLayer");
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
@@ -55,5 +55,5 @@ void Receiver_FromLowerLayer(struct packet *pkt)
             Receiver_ToLowerLayer((struct packet *)answer);
         }
     }
-    printf("o Receiver_FromLowerLayer");
+    // printf("o Receiver_FromLowerLayer");
 }

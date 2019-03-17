@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <vector>
 
 #include "rdt_struct.h"
@@ -61,7 +62,7 @@ void Sender_FromUpperLayer(struct message *msg)
    sender */
 void Sender_FromLowerLayer(struct packet *pkt)
 {
-    printf("i Sender_FromLowerLayer\n");
+    // printf("i Sender_FromLowerLayer\n");
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
@@ -71,7 +72,7 @@ void Sender_FromLowerLayer(struct packet *pkt)
             Sender_SendPackets();
         }
     }
-    printf("o Sender_FromLowerLayer\n");
+    // printf("o Sender_FromLowerLayer\n");
 }
 
 /* event handler, called when the timer expires */
@@ -89,8 +90,9 @@ void Sender_Timeout()
 void Sender_StoreMessages(struct message *msg)
 {
     assert(msg);
-    printf("i Sender_StoreMessage\n");
+    // printf("i Sender_StoreMessage\n");
     int msg_size = msg->size;
+    // printf("msg size %d\n", msg->size);
     while (msg_size >= MAX_PAYLOAD_SIZE)
     {
         PktItem *p = (PktItem *)malloc(sizeof(PktItem));
@@ -102,7 +104,7 @@ void Sender_StoreMessages(struct message *msg)
         msg_size -= MAX_PAYLOAD_SIZE;
         free(p);
     }
-    if (!msg_size) // Store remaining data if necessary.
+    if (msg_size) // Store remaining data if necessary.
     {
         PktItem *p = (PktItem *)malloc(sizeof(PktItem));
         p->seq = pkt_buff.size();
@@ -112,16 +114,18 @@ void Sender_StoreMessages(struct message *msg)
         pkt_buff.push_back(*p);
         free(p);
     }
-    printf("o Sender_StoreMessage\n");
+    // printf("pkt buff len %d\n", pkt_buff.size());
+    // printf("o Sender_StoreMessage\n");
 }
 
 void Sender_SendPackets()
 {
-    printf("i Sender_SendPackets\n");
+    // printf("i Sender_SendPackets\n");
     for (; pkt_nextseqnumber < pkt_base + WINDOW_SIZE; pkt_nextseqnumber++)
     {
+        // printf("nextseqnumber %d\n", pkt_nextseqnumber);
         Sender_ToLowerLayer((struct packet *)&pkt_buff[pkt_nextseqnumber]);
         Sender_StartTimer(TIMEOUT);
     }
-    printf("o Sender_SendPackets\n");
+    // printf("o Sender_SendPackets\n");
 }
