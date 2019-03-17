@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 
 #include "rdt_struct.h"
 #include "rdt_receiver.h"
@@ -28,6 +29,7 @@ uint32_t seq;
 void Receiver_Init()
 {
     fprintf(stdout, "At %.2fs: receiver initializing ...\n", GetSimulationTime());
+    seq = 0;
 }
 
 /* receiver finalization, called once at the very end.
@@ -47,13 +49,21 @@ void Receiver_FromLowerLayer(struct packet *pkt)
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
-        if (seq <= p->seq)
+        printf("seq %u p->seq %u\n", seq, p->seq);
+        if (seq == p->seq)
         {
-            PktItem *answer = (PktItem *)malloc(sizeof(PktItem));
-            answer->seq = p->seq;
-            setChecksum(answer);
-            Receiver_ToLowerLayer((struct packet *)answer);
+            seq++;
+            struct message msg;
+            msg.data = (char *)(p->payload);
+            msg.size = p->payload_size;
+            Receiver_ToUpperLayer(&msg);
+            printf("recc %u %.*s\n", msg.size, msg.size, p->payload);
         }
+        PktItem answer;
+        answer.seq = seq;
+        setChecksum(&answer);
+        Receiver_ToLowerLayer((struct packet *)&answer);
+        
     }
     // printf("o Receiver_FromLowerLayer");
 }

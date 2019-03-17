@@ -66,9 +66,9 @@ void Sender_FromLowerLayer(struct packet *pkt)
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
-        if (p->seq >= pkt_base)
+        if (p->seq > pkt_base)
         {
-            pkt_base = p->seq + 1;
+            pkt_base = p->seq;
             Sender_SendPackets();
         }
     }
@@ -79,9 +79,10 @@ void Sender_FromLowerLayer(struct packet *pkt)
 void Sender_Timeout()
 {
     printf("i Sender_Timeout\n");
-    for (int i = 0; i < WINDOW_SIZE; i++)
+    for (uint32_t i = pkt_base; i < pkt_nextseqnumber; i++)
     {
-        Sender_ToLowerLayer((struct packet *)&pkt_buff[i + pkt_base]);
+        printf("%u %u\n", pkt_base, pkt_nextseqnumber);
+        Sender_ToLowerLayer((struct packet *)&pkt_buff[i]);
         Sender_StartTimer(TIMEOUT);
     }
     printf("o Sender_Timeout\n");
@@ -92,27 +93,18 @@ void Sender_StoreMessages(struct message *msg)
     assert(msg);
     // printf("i Sender_StoreMessage\n");
     int msg_size = msg->size;
+    char *data = msg->data;
     // printf("msg size %d\n", msg->size);
-    while (msg_size >= MAX_PAYLOAD_SIZE)
+    while (msg_size)
     {
-        PktItem *p = (PktItem *)malloc(sizeof(PktItem));
-        p->seq = pkt_buff.size();
-        p->payload_size = MAX_PAYLOAD_SIZE;
-        memcpy(p->payload, msg->data, MAX_PAYLOAD_SIZE);
-        setChecksum(p);
-        pkt_buff.push_back(*p);
-        msg_size -= MAX_PAYLOAD_SIZE;
-        free(p);
-    }
-    if (msg_size) // Store remaining data if necessary.
-    {
-        PktItem *p = (PktItem *)malloc(sizeof(PktItem));
-        p->seq = pkt_buff.size();
-        p->payload_size = msg_size;
-        memcpy(p->payload, msg->data, msg_size);
-        setChecksum(p);
-        pkt_buff.push_back(*p);
-        free(p);
+        PktItem p;
+        p.seq = pkt_buff.size();
+        p.payload_size = msg_size > MAX_PAYLOAD_SIZE ? MAX_PAYLOAD_SIZE : msg_size;
+        memcpy(p.payload, data, p.payload_size);
+        setChecksum(&p);
+        pkt_buff.push_back(p);
+        msg_size -= p.payload_size;
+        data += p.payload_size;
     }
     // printf("pkt buff len %d\n", pkt_buff.size());
     // printf("o Sender_StoreMessage\n");
@@ -121,10 +113,11 @@ void Sender_StoreMessages(struct message *msg)
 void Sender_SendPackets()
 {
     // printf("i Sender_SendPackets\n");
-    for (; pkt_nextseqnumber < pkt_base + WINDOW_SIZE; pkt_nextseqnumber++)
+    for (; pkt_nextseqnumber < std::min((std::size_t)(pkt_base + WINDOW_SIZE), pkt_buff.size()); pkt_nextseqnumber++)
     {
         // printf("nextseqnumber %d\n", pkt_nextseqnumber);
-        Sender_ToLowerLayer((struct packet *)&pkt_buff[pkt_nextseqnumber]);
+        Sender_ToLowerLayer((struct packet *)(&pkt_buff.at(pkt_nextseqnumber)));
+        printf("send %u %.*s\n", pkt_buff[pkt_nextseqnumber].payload_size, pkt_buff[pkt_nextseqnumber].payload_size, pkt_buff[pkt_nextseqnumber].payload);
         Sender_StartTimer(TIMEOUT);
     }
     // printf("o Sender_SendPackets\n");
