@@ -16,24 +16,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <list>
+#include <vector>
 
 #include "rdt_struct.h"
 #include "rdt_sender.h"
 #include "rdt_protocol.h"
 
 /* Declaration added by me. */
-static std::list<PktItem> pkt_buff;
+static std::vector<PktItem> pkt_buff;
+static uint32_t pkt_base;
+static uint32_t pkt_nextseqnumber;
 
 /* Send packages and store them into buff. */
 void Sender_StoreMessages(struct message *msg);
 
-void Sender_SlideWindow();
+void Sender_SendPackets();
 
 /* sender initialization, called once at the very beginning */
 void Sender_Init()
 {
     fprintf(stdout, "At %.2fs: sender initializing ...\n", GetSimulationTime());
+    pkt_base = 0;
+    pkt_nextseqnumber = 0;
 }
 
 /* sender finalization, called once at the very end.
@@ -50,6 +54,7 @@ void Sender_Final()
 void Sender_FromUpperLayer(struct message *msg)
 {
     Sender_StoreMessages(msg);
+    Sender_SendPackets();
 }
 
 /* event handler, called when a packet is passed from the lower layer at the 
@@ -57,12 +62,24 @@ void Sender_FromUpperLayer(struct message *msg)
 void Sender_FromLowerLayer(struct packet *pkt)
 {
     PktItem *p = (PktItem *)pkt;
-
+    if (varifyChecksum(p))
+    {
+        if (p->seq >= pkt_base)
+        {
+            pkt_base = p->seq + 1;
+            Sender_SendPackets();
+        }
+    }
 }
 
 /* event handler, called when the timer expires */
 void Sender_Timeout()
 {
+    for (int i = 0; i < WINDOW_SIZE; i++)
+    {
+        Sender_ToLowerLayer((struct packet *)&pkt_buff[i + pkt_base]);
+        Sender_StartTimer(TIMEOUT);
+    }
 }
 
 void Sender_StoreMessages(struct message *msg)
@@ -71,7 +88,7 @@ void Sender_StoreMessages(struct message *msg)
     while (msg_size >= MAX_PAYLOAD_SIZE)
     {
         PktItem *p = (PktItem *)malloc(sizeof(PktItem));
-        p->seq = pkt_buff.size() + 1;
+        p->seq = pkt_buff.size();
         p->payload_size = MAX_PAYLOAD_SIZE;
         memcpy(p->payload, msg->data, MAX_PAYLOAD_SIZE);
         setChecksum(p);
@@ -82,7 +99,7 @@ void Sender_StoreMessages(struct message *msg)
     if (!msg_size) // Store remaining data if necessary.
     {
         PktItem *p = (PktItem *)malloc(sizeof(PktItem));
-        p->seq = pkt_buff.size() + 1;
+        p->seq = pkt_buff.size();
         p->payload_size = msg_size;
         memcpy(p->payload, msg->data, msg_size);
         setChecksum(p);
@@ -91,6 +108,11 @@ void Sender_StoreMessages(struct message *msg)
     }
 }
 
-void Sender_SlideWindow()
+void Sender_SendPackets()
 {
+    for (; pkt_nextseqnumber < pkt_base + WINDOW_SIZE; pkt_nextseqnumber++)
+    {
+        Sender_ToLowerLayer((struct packet *)&pkt_buff[pkt_nextseqnumber]);
+        Sender_StartTimer(TIMEOUT);
+    }
 }
