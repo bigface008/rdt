@@ -50,7 +50,7 @@ void Receiver_FromLowerLayer(struct packet *pkt)
 {
     printf("At %.2fs: i Receiver_FromLowerLayer\n", GetSimulationTime());
     PktItem *p = (PktItem *)pkt;
-    if (varifyChecksum(p))
+    if (varifyCRC(p))
     {
         printf("seq %u p->seq %u\n", seq, p->seq);
         PktItem temp;
@@ -76,7 +76,7 @@ void Receiver_FromLowerLayer(struct packet *pkt)
         }
         PktItem answer;
         answer.seq = seq;
-        setChecksum(&answer);
+        setCRC(&answer);
         Receiver_ToLowerLayer((struct packet *)&answer);
     }
     printf("o Receiver_FromLowerLayer\n");

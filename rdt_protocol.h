@@ -24,4 +24,7 @@ void setChecksum(PktItem *ptr);
 
 int varifyChecksum(PktItem *ptr);
 
+void setCRC(PktItem *ptr);
+
+int varifyCRC(PktItem *ptr);
 #endif

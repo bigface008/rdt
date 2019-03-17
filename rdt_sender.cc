@@ -66,7 +66,7 @@ void Sender_FromLowerLayer(struct packet *pkt)
     static int ack_cnt = 0;
     printf("At %.2fs: i Sender_FromLowerLayer\n", GetSimulationTime());
     PktItem *p = (PktItem *)pkt;
-    if (varifyChecksum(p))
+    if (varifyCRC(p))
     {
         printf("p->seq %u pkt_base %u\n", p->seq, pkt_base);
         if (p->seq > pkt_base)
@@ -115,7 +115,7 @@ void Sender_StoreMessages(struct message *msg)
         p.seq = pkt_buff.size();
         p.payload_size = msg_size > MAX_PAYLOAD_SIZE ? MAX_PAYLOAD_SIZE : msg_size;
         memcpy(p.payload, data, p.payload_size);
-        setChecksum(&p);
+        setCRC(&p);
         pkt_buff.push_back(p);
         msg_size -= p.payload_size;
         data += p.payload_size;
