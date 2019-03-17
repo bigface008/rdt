@@ -8,15 +8,15 @@
 
 #define WINDOW_SIZE 10
 #define TIMEOUT 0.5
-#define HEADER_SIZE 7
+#define HEADER_SIZE 8
 #define MAX_PAYLOAD_SIZE (RDT_PKTSIZE - HEADER_SIZE)
 
 struct PktItem
 {
     /* data */
-    uint16_t checksum;
     uint32_t seq;
-    uint8_t payload_size;
+    uint16_t checksum;
+    uint16_t payload_size;
     uint8_t payload[MAX_PAYLOAD_SIZE];
 };
 

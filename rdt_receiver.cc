@@ -45,19 +45,19 @@ void Receiver_Final()
    receiver */
 void Receiver_FromLowerLayer(struct packet *pkt)
 {
-    // printf("i Receiver_FromLowerLayer");
+    printf("i Receiver_FromLowerLayer\n");
     PktItem *p = (PktItem *)pkt;
     if (varifyChecksum(p))
     {
         printf("seq %u p->seq %u\n", seq, p->seq);
         if (seq == p->seq)
         {
+            // printf("recc %u %.*s\n", p->payload_size, p->payload_size, p->payload);
             seq++;
             struct message msg;
             msg.data = (char *)(p->payload);
             msg.size = p->payload_size;
             Receiver_ToUpperLayer(&msg);
-            printf("recc %u %.*s\n", msg.size, msg.size, p->payload);
         }
         PktItem answer;
         answer.seq = seq;
@@ -65,5 +65,5 @@ void Receiver_FromLowerLayer(struct packet *pkt)
         Receiver_ToLowerLayer((struct packet *)&answer);
         
     }
-    // printf("o Receiver_FromLowerLayer");
+    printf("o Receiver_FromLowerLayer\n");
 }
