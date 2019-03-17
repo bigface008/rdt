@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <vector>
 #include <list>
 
 #include "rdt_struct.h"
@@ -24,8 +23,7 @@
 #include "rdt_protocol.h"
 
 /* Declaration added by me. */
-PktItem *pkt_buff;
-int pkt_buff_len;
+static std::list<PktItem> pkt_buff;
 
 /* Send packages and store them into buff. */
 void Sender_StoreMessages(struct message *msg);
@@ -36,7 +34,6 @@ void Sender_SlideWindow();
 void Sender_Init()
 {
     fprintf(stdout, "At %.2fs: sender initializing ...\n", GetSimulationTime());
-    pkt_buff_len = 0;
 }
 
 /* sender finalization, called once at the very end.
@@ -60,6 +57,7 @@ void Sender_FromUpperLayer(struct message *msg)
 void Sender_FromLowerLayer(struct packet *pkt)
 {
     PktItem *p = (PktItem *)pkt;
+
 }
 
 /* event handler, called when the timer expires */
@@ -73,19 +71,23 @@ void Sender_StoreMessages(struct message *msg)
     while (msg_size >= MAX_PAYLOAD_SIZE)
     {
         PktItem *p = (PktItem *)malloc(sizeof(PktItem));
-        p->seq = ++pkt_buff_len;
+        p->seq = pkt_buff.size() + 1;
         p->payload_size = MAX_PAYLOAD_SIZE;
         memcpy(p->payload, msg->data, MAX_PAYLOAD_SIZE);
         setChecksum(p);
+        pkt_buff.push_back(*p);
         msg_size -= MAX_PAYLOAD_SIZE;
+        free(p);
     }
     if (!msg_size) // Store remaining data if necessary.
     {
         PktItem *p = (PktItem *)malloc(sizeof(PktItem));
-        p->seq = ++pkt_buff_len;
+        p->seq = pkt_buff.size() + 1;
         p->payload_size = msg_size;
         memcpy(p->payload, msg->data, msg_size);
         setChecksum(p);
+        pkt_buff.push_back(*p);
+        free(p);
     }
 }
 
